@@ -14,6 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
   --brand:#01B52D; --brand-d:#019222; --brand-l:#E7F8EC; --accent:#FD5900;
@@ -407,6 +408,25 @@ textarea:focus{outline:none;border-color:var(--brand)}
 .scanview .vf .svi{width:44px;height:44px;color:rgba(255,255,255,.8)}
 .note-demo{text-align:center;font-size:12px;color:var(--muted);margin-top:18px}
 
+/* feedback-tool */
+#fbWidget{position:fixed;left:22px;bottom:22px;z-index:60;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.fbpill{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#fff;font-weight:650;font-size:12.5px;border-radius:999px;padding:8px 13px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.fbpill .svi{width:15px;height:15px}
+.fbfab{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:650;font-size:13.5px;border-radius:999px;padding:12px 17px;box-shadow:0 10px 28px rgba(17,24,28,.2);cursor:pointer}
+.fbfab .svi{width:18px;height:18px;color:var(--accent)}
+.fbcard2{max-width:1100px;width:96vw}
+.fbshotwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:74vh;cursor:crosshair;background:var(--bg)}
+.fbshotwrap img{width:100%;display:block;pointer-events:none}
+.fbpin{position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.fbmark{display:flex;gap:9px;align-items:center;margin-top:8px}
+.fbmark .num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}
+.fbmark input{flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:9px}
+.fbmark .rm{color:var(--muted);cursor:pointer;padding:3px}
+.fbcardrow{display:flex;gap:13px;border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:12px;background:#fff}
+.fbcardrow img{width:170px;height:auto;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;flex:none;align-self:flex-start}
+.fbcardrow .fbm{font-size:13px;margin:4px 0;display:flex;gap:8px}
+.fbcardrow .fbm .num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:10px;flex:none}
+
 /* AI-assistent */
 #aiChat{position:fixed;right:22px;bottom:22px;z-index:55}
 .aitip{position:fixed;right:22px;bottom:92px;z-index:54;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 13px;box-shadow:0 12px 32px rgba(0,0,0,.18);font-weight:650;font-size:13.5px;display:flex;align-items:center;gap:9px;cursor:pointer;animation:tipin .45s ease}
@@ -479,6 +499,7 @@ select.fld,.logfilters select,.addrow select{appearance:none;-webkit-appearance:
 <div id="modalHost"></div>
 <div id="aiChat" class="hidden"></div>
 <div id="selBar"></div>
+<div id="fbWidget"></div>
 
 <script>
 /* ============ ICONS ============ */
@@ -502,6 +523,8 @@ const I = {
   print:'<path d="M6.5 9V3.5h11V9"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M7 17h10v4H7z"/><path d="M16.5 12.5h.01"/>',
   phone:'<path d="M5 4h4l2 5-2.5 1.5a12.5 12.5 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16.5 16.5 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
   chat:'<path d="M21 11.5c0 3.6-4 6.5-9 6.5-1 0-2-.1-2.9-.35L4.5 20l1.4-3.2C4.1 15.6 3 13.7 3 11.5 3 7.9 7 5 12 5s9 2.9 9 6.5z"/>',
+  flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  inbox:'<path d="M3 13h4l2 3h6l2-3h4"/><path d="M5 5h14l2 8v6H3v-6z"/>',
   clock:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7v5.2l3.3 2"/>',
   repeat:'<path d="M4 9a8 8 0 0 1 13.4-3.4L20 8M20 4v4h-4"/><path d="M20 15a8 8 0 0 1-13.4 3.4L4 16M4 20v-4h4"/>',
   bulb:'<path d="M9.2 18h5.6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/>',
@@ -2291,10 +2314,104 @@ async function authReset(){
 }
 function authLogout(){ if(sb) sb.auth.signOut(); }
 
+/* ============ FEEDBACK / BUG-MELDER ============ */
+let fbDraft=null;
+function fbStore(){try{return JSON.parse(localStorage.getItem('owlog_fb')||'[]');}catch(e){return [];}}
+function fbSaveStore(a){try{localStorage.setItem('owlog_fb',JSON.stringify(a));}catch(e){}}
+function fbScreenLabel(){return view==='mobile'?('Mobiel · '+(mScreen.name||'home')):('Desktop · '+desktopTab);}
+function renderFbWidget(){
+  const el=document.getElementById('fbWidget'); if(!el)return;
+  const n=fbStore().length;
+  el.innerHTML=`${n?`<button class="fbpill" onclick="fbOverview()">${ic('inbox')} Feedback-overzicht (${n})</button>`:''}
+    <button class="fbfab" onclick="fbStart()">${ic('flag')} Meld iets op deze pagina</button>`;
+}
+function fbStart(){
+  if(!window.html2canvas){toast('Schermafbeelding-tool nog niet geladen, probeer zo opnieuw');return;}
+  const w=document.getElementById('fbWidget'); if(w)w.style.visibility='hidden';
+  const ai=document.getElementById('aiChat'); const aiv=ai?ai.style.visibility:''; if(ai)ai.style.visibility='hidden';
+  toast('Schermafbeelding maken…');
+  html2canvas(document.body,{useCORS:true,backgroundColor:'#F4F6F7',logging:false,scale:1,
+    x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight})
+   .then(cv=>{
+     if(w)w.style.visibility=''; if(ai)ai.style.visibility=aiv;
+     fbDraft={shot:cv.toDataURL('image/jpeg',0.75),markers:[],label:fbScreenLabel(),ts:Date.now()};
+     renderFbModal();
+   }).catch(()=>{if(w)w.style.visibility='';if(ai)ai.style.visibility=aiv;toast('Schermafbeelding mislukt');});
+}
+function renderFbModal(){
+  const d=fbDraft; if(!d)return;
+  document.getElementById('modalHost').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="modalcard fbcard2">
+    <h3 style="text-align:center;margin-top:0">Wat is hier mis?</h3>
+    <p class="muted" style="text-align:center;margin:-2px 0 8px">Klik op de afbeelding om een punt te markeren, of beschrijf het hieronder. Pagina: <b>${d.label}</b></p>
+    <div class="fbshotwrap" id="fbShot" onclick="fbAddMarker(event)">
+      <img src="${d.shot}" alt="schermafbeelding">
+      ${d.markers.map((m,i)=>`<span class="fbpin" style="left:${m.x}%;top:${m.y}%">${i+1}</span>`).join('')}
+    </div>
+    ${d.markers.map((m,i)=>`<div class="fbmark"><span class="num">${i+1}</span><input id="fbm_${i}" placeholder="Wat klopt er niet op dit punt?" value="${(m.text||'').replace(/"/g,'&quot;')}"><span class="rm" onclick="fbDelMarker(${i})">${ic('x')}</span></div>`).join('')}
+    <label class="fld-l" style="margin-top:12px">Algemene opmerking</label>
+    <textarea id="fbGen" placeholder="Beschrijf wat er op deze pagina gebeurt of misgaat…">${(d.general||'')}</textarea>
+    <div style="display:flex;gap:9px;margin-top:16px">
+      <button class="btn ghost" style="flex:1;justify-content:center" onclick="closeModal()">Annuleren</button>
+      <button class="btn" style="flex:1" onclick="fbSubmit()">${ic('check')} Feedback opslaan</button>
+    </div></div></div>`;
+}
+function fbReadInputs(){
+  if(!fbDraft)return;
+  fbDraft.markers.forEach((m,i)=>{const el=document.getElementById('fbm_'+i);if(el)m.text=el.value;});
+  const g=document.getElementById('fbGen'); fbDraft.general=g?g.value:'';
+}
+function fbAddMarker(ev){
+  if(ev.target.classList.contains('fbpin'))return;
+  fbReadInputs();
+  const wrap=document.getElementById('fbShot');const r=wrap.getBoundingClientRect();
+  const x=clamp((ev.clientX-r.left)/r.width*100), y=clamp((ev.clientY-r.top+wrap.scrollTop)/wrap.scrollHeight*100);
+  fbDraft.markers.push({x,y,text:''});
+  renderFbModal();
+  const last=document.getElementById('fbm_'+(fbDraft.markers.length-1)); if(last)last.focus();
+}
+function fbDelMarker(i){fbReadInputs();fbDraft.markers.splice(i,1);renderFbModal();}
+function fbSubmit(){
+  fbReadInputs();
+  if(!fbDraft.general.trim() && !fbDraft.markers.some(m=>m.text.trim())){toast('Voeg minstens één opmerking toe');return;}
+  const arr=fbStore();
+  arr.push({id:'fb_'+Date.now(),ts:fbDraft.ts,label:fbDraft.label,general:fbDraft.general.trim(),markers:fbDraft.markers.filter(m=>m.text.trim()),shot:fbDraft.shot,url:location.href});
+  fbSaveStore(arr);
+  if(CLOUD&&sb&&cloudUser){try{sb.from('feedback').insert({user_id:cloudUser.id,page:fbDraft.label,body:fbDraft.general,markers:fbDraft.markers,shot:fbDraft.shot});}catch(e){}}
+  fbDraft=null;
+  document.getElementById('modalHost').innerHTML='';
+  renderFbWidget();
+  toast('Bedankt! Je feedback is opgeslagen.');
+}
+function fbOverview(){
+  const arr=fbStore().slice().reverse();
+  document.getElementById('modalHost').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="modalcard" style="max-width:760px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><h3 style="margin:0;flex:1">Feedback-overzicht (${arr.length})</h3>
+      ${arr.length?`<button class="btn ghost sm" onclick="fbExport()">${ic('print')} Exporteren</button>`:''}
+      <button class="iconbtn" onclick="closeModal()">${ic('x')}</button></div>
+    <p class="muted" style="margin:-2px 0 12px">Alles wat op de pagina's is gemeld. ${CLOUD?'':'Let op: in deze demoversie staat dit lokaal op dit apparaat — voor centraal verzamelen van álle testers is de cloud-koppeling (Supabase) nodig.'}</p>
+    ${arr.length?arr.map(f=>`<div class="fbcardrow">
+      <img src="${f.shot}" onclick="window.open('${f.shot}','_blank')" alt="">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700">${f.label} <span class="muted" style="font-weight:400">· ${fmtDateTime(f.ts)}</span></div>
+        ${f.general?`<div style="font-size:13.5px;margin-top:4px">${f.general}</div>`:''}
+        ${f.markers.map((m,i)=>`<div class="fbm"><span class="num">${i+1}</span><span>${m.text}</span></div>`).join('')}
+      </div>
+      <button class="iconbtn lgdel" title="Verwijderen" onclick="fbDelete('${f.id}')">${ic('trash')}</button>
+    </div>`).join(''):'<p class="muted">Nog geen feedback gemeld.</p>'}
+  </div></div>`;
+}
+function fbDelete(id){fbSaveStore(fbStore().filter(f=>f.id!==id));fbOverview();renderFbWidget();}
+function fbExport(){
+  const arr=fbStore();const w=window.open('','_blank');if(!w){toast('Sta pop-ups toe');return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Feedback-overzicht</title><style>body{font-family:Arial,sans-serif;margin:24px;color:#222}h1{font-size:20px}.item{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:16px;page-break-inside:avoid}img{max-width:380px;border:1px solid #ddd;border-radius:6px;display:block;margin-top:8px}.lbl{font-weight:bold}.mk{margin:3px 0}</style></head><body><h1>Feedback-overzicht (${arr.length})</h1>${arr.map(f=>`<div class="item"><div class="lbl">${f.label} — ${fmtDateTime(f.ts)}</div>${f.general?`<p>${f.general}</p>`:''}${f.markers.map((m,i)=>`<div class="mk">${i+1}. ${m.text}</div>`).join('')}<img src="${f.shot}"></div>`).join('')}</body></html>`);
+  w.document.close();
+}
+
 /* ============ INIT ============ */
 loadState();
 buildProdIdx();
 setView(view);
+renderFbWidget();
 if(CLOUD){ cloudInit(); renderAuth(); }
 else { renderAi(); loadFeed(); }
 /* live bijwerken als een ander tabblad (bijv. de mobiele weergave) een ronde logt */
